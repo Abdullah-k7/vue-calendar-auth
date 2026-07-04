@@ -1,0 +1,196 @@
+<script setup>
+import { reactive, ref, watch } from 'vue'
+
+const props = defineProps({
+  show: {
+    type: Boolean,
+    default: false,
+  },
+  selectedDate: {
+    type: String,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['close', 'save'])
+
+const localError = ref('')
+
+const form = reactive({
+  title: '',
+  date: props.selectedDate,
+  time: '',
+  subtitle: '',
+  color: 'indigo',
+})
+
+watch(
+  () => props.selectedDate,
+  (newDate) => {
+    form.date = newDate
+  }
+)
+
+watch(
+  () => props.show,
+  (isOpen) => {
+    if (isOpen) {
+      localError.value = ''
+      form.title = ''
+      form.date = props.selectedDate
+      form.time = ''
+      form.subtitle = ''
+      form.color = 'indigo'
+    }
+  }
+)
+
+function handleSubmit() {
+  localError.value = ''
+
+  if (!form.title.trim()) {
+    localError.value = 'Please enter an event title.'
+    return
+  }
+
+  if (!form.date) {
+    localError.value = 'Please select a date.'
+    return
+  }
+
+  emit('save', {
+    title: form.title.trim(),
+    date: form.date,
+    time: form.time,
+    subtitle: form.subtitle.trim(),
+    color: form.color,
+  })
+}
+</script>
+
+<template>
+  <Teleport to="body">
+    <div
+      v-if="show"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+      @click.self="$emit('close')"
+    >
+      <div class="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <div class="mb-6 flex items-center justify-between">
+          <div>
+            <h2 class="text-xl font-bold text-slate-900">
+              Add Event
+            </h2>
+
+            <p class="text-sm text-slate-500 mt-1">
+              Create a new event for your calendar.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            @click="$emit('close')"
+            class="h-9 w-9 rounded-xl text-slate-500 hover:bg-slate-100"
+          >
+            ✕
+          </button>
+        </div>
+
+        <form @submit.prevent="handleSubmit" class="space-y-4">
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-slate-700">
+              Event Title
+            </label>
+
+            <input
+              v-model="form.title"
+              type="text"
+              placeholder="Example: Team meeting"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="mb-1 block text-sm font-semibold text-slate-700">
+                Date
+              </label>
+
+              <input
+                v-model="form.date"
+                type="date"
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+
+            <div>
+              <label class="mb-1 block text-sm font-semibold text-slate-700">
+                Time
+              </label>
+
+              <input
+                v-model="form.time"
+                type="time"
+                class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-slate-700">
+              Description
+            </label>
+
+            <textarea
+              v-model="form.subtitle"
+              rows="3"
+              placeholder="Write event details..."
+              class="w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            ></textarea>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-slate-700">
+              Color
+            </label>
+
+            <select
+              v-model="form.color"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="indigo">Indigo</option>
+              <option value="violet">Violet</option>
+              <option value="blue">Blue</option>
+              <option value="orange">Orange</option>
+              <option value="red">Red</option>
+            </select>
+          </div>
+
+          <div
+            v-if="localError"
+            class="rounded-xl bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm"
+          >
+            {{ localError }}
+          </div>
+
+          <div class="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              @click="$emit('close')"
+              class="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+            >
+              Cancel
+            </button>
+
+            <button
+              type="submit"
+              class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              Save Event
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </Teleport>
+</template>
