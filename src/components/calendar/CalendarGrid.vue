@@ -24,18 +24,20 @@ defineEmits(['selectDate'])
 </script>
 
 <template>
-  <div>
-    <div class="grid grid-cols-7 gap-3 mb-3">
+  <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+    <!-- Weekdays -->
+    <div class="grid grid-cols-7 bg-indigo-50/70 border-b border-slate-200">
       <div
         v-for="day in weekdays"
         :key="day"
-        class="text-center text-[11px] font-bold uppercase tracking-wide text-slate-400"
+        class="h-11 flex items-center justify-center text-[11px] font-bold uppercase tracking-wide text-slate-600"
       >
         {{ day }}
       </div>
     </div>
 
-    <div class="grid grid-cols-7 gap-3">
+    <!-- Days -->
+    <div class="grid grid-cols-7 divide-x divide-y divide-slate-100">
       <CalendarDayCell
         v-for="(day, index) in days"
         :key="day.dateKey || `empty-${index}`"

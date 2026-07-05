@@ -18,25 +18,25 @@ const props = defineProps({
 
 const emit = defineEmits(['select'])
 
-const cellClasses = computed(() => {
-  if (props.day.isEmpty) {
-    return 'bg-transparent border-transparent cursor-default'
-  }
-
+const dayNumberClasses = computed(() => {
   if (props.selected) {
-    return 'bg-white border-indigo-600 ring-2 ring-indigo-200 shadow-sm'
+    return 'bg-indigo-600 text-white shadow-md'
   }
 
-  return 'bg-white border-slate-200 hover:border-indigo-300 hover:shadow-sm'
+  if (props.day.isToday) {
+    return 'border-2 border-indigo-600 text-indigo-700 bg-white'
+  }
+
+  return 'text-slate-700 hover:bg-indigo-50 hover:text-indigo-700'
 })
 
-function eventChipClass(event) {
+function eventDotClass(event) {
   const colors = {
-    indigo: 'bg-indigo-100 text-indigo-700 border-indigo-200',
-    violet: 'bg-violet-100 text-violet-700 border-violet-200',
-    orange: 'bg-orange-100 text-orange-700 border-orange-200',
-    red: 'bg-red-100 text-red-700 border-red-200',
-    blue: 'bg-blue-100 text-blue-700 border-blue-200',
+    indigo: 'bg-indigo-600',
+    violet: 'bg-violet-600',
+    orange: 'bg-orange-500',
+    red: 'bg-red-500',
+    blue: 'bg-blue-500',
   }
 
   return colors[event.color] || colors.indigo
@@ -52,40 +52,29 @@ function handleSelect() {
   <button
     type="button"
     @click="handleSelect"
-    class="min-h-28 rounded-2xl border p-3 text-left transition"
-    :class="cellClasses"
+    class="min-h-16 sm:min-h-20 w-full bg-white px-1 py-3 transition hover:bg-slate-50"
+    :class="day.isEmpty ? 'cursor-default text-slate-300' : 'cursor-pointer'"
   >
     <template v-if="!day.isEmpty">
-      <div class="flex items-center justify-between">
+      <div class="flex justify-center">
         <span
-          class="text-xs font-semibold"
-          :class="selected ? 'text-indigo-700' : 'text-slate-600'"
+          class="h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold transition"
+          :class="dayNumberClasses"
         >
           {{ day.dayNumber }}
         </span>
-
-        <span
-          v-if="day.isToday"
-          class="h-2 w-2 rounded-full bg-indigo-600"
-        ></span>
       </div>
 
-      <div class="mt-3 space-y-1">
-        <div
-          v-for="event in events.slice(0, 2)"
+      <div
+        v-if="events.length"
+        class="mt-2 flex justify-center gap-1"
+      >
+        <span
+          v-for="event in events.slice(0, 3)"
           :key="event.id"
-          class="truncate rounded-md border px-2 py-1 text-[10px] font-semibold"
-          :class="eventChipClass(event)"
-        >
-          {{ event.title }}
-        </div>
-
-        <div
-          v-if="events.length > 2"
-          class="text-[10px] font-semibold text-slate-400"
-        >
-          +{{ events.length - 2 }} more
-        </div>
+          class="h-1.5 w-1.5 rounded-full"
+          :class="eventDotClass(event)"
+        ></span>
       </div>
     </template>
   </button>

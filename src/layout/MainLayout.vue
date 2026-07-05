@@ -28,18 +28,12 @@ async function handleLogout() {
 </script>
 
 <template>
-  <div
-    class="min-h-screen bg-slate-100 flex flex-col"
-    :dir="isArabic ? 'rtl' : 'ltr'"
-  >
+  <div class="min-h-screen bg-slate-100 flex flex-col" :dir="isArabic ? 'rtl' : 'ltr'">
     <!-- Top Navbar -->
     <header
       class="h-16 shrink-0 bg-white border-b border-slate-200 px-4 sm:px-8 flex items-center justify-between"
     >
-      <RouterLink
-        :to="{ name: 'calendar' }"
-        class="flex items-center gap-3"
-      >
+      <RouterLink :to="{ name: 'calendar' }" class="flex items-center gap-3">
         <div
           class="h-10 w-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-sm"
         >
@@ -47,23 +41,13 @@ async function handleLogout() {
         </div>
 
         <div>
-          <h1 class="text-sm sm:text-base font-bold text-slate-900">
-            Vue Calendar Auth
-          </h1>
+          <h1 class="text-sm sm:text-base font-bold text-slate-900">Vue Calendar Auth</h1>
 
-          <p
-            v-if="authStore.user?.email"
-            class="hidden sm:block text-xs text-slate-500"
-          >
+          <p v-if="authStore.user?.email" class="hidden sm:block text-xs text-slate-500">
             {{ authStore.user?.email }}
           </p>
 
-          <p
-            v-else
-            class="hidden sm:block text-xs text-slate-500"
-          >
-            Firebase Authentication
-          </p>
+          <p v-else class="hidden sm:block text-xs text-slate-500">Firebase Authentication</p>
         </div>
       </RouterLink>
 
@@ -80,7 +64,7 @@ async function handleLogout() {
 
     <!-- Page Body -->
     <div class="flex flex-1 min-h-[calc(100vh-4rem)]">
-      <!-- Sidebar -->
+      <!-- Desktop Sidebar -->
       <aside
         class="hidden lg:flex w-64 shrink-0 bg-white border-r border-slate-200 px-8 py-5 flex-col"
       >
@@ -119,9 +103,43 @@ async function handleLogout() {
       </aside>
 
       <!-- Main Content Area -->
-      <main class="flex-1 min-w-0 bg-slate-100 p-4 overflow-y-auto">
+      <main class="flex-1 min-w-0 bg-slate-100 p-4 pb-28 lg:pb-4 overflow-y-auto">
         <RouterView />
       </main>
     </div>
+
+    <!-- Mobile Bottom Toolbar -->
+    <nav
+      class="lg:hidden fixed bottom-4 left-4 right-4 z-50 bg-white border border-slate-200 shadow-2xl rounded-3xl px-3 py-2"
+    >
+      <div class="grid grid-cols-3 items-center gap-2">
+        <RouterLink
+          :to="{ name: 'calendar' }"
+          class="flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-600 transition"
+          exact-active-class="bg-indigo-600 text-white shadow-md"
+        >
+          <span class="text-lg leading-none">▦</span>
+          <span>{{ t('layout.calendar') }}</span>
+        </RouterLink>
+
+        <RouterLink
+          :to="{ name: 'events' }"
+          class="flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-600 transition"
+          exact-active-class="bg-indigo-600 text-white shadow-md"
+        >
+          <span class="text-lg leading-none">📅</span>
+          <span>{{ t('layout.myEvents') }}</span>
+        </RouterLink>
+
+        <RouterLink
+          :to="{ name: 'profile' }"
+          class="flex flex-col items-center justify-center gap-1 rounded-2xl px-3 py-2 text-xs font-semibold text-slate-600 transition"
+          exact-active-class="bg-indigo-600 text-white shadow-md"
+        >
+          <span class="text-lg leading-none">♙</span>
+          <span>{{ t('layout.profile') }}</span>
+        </RouterLink>
+      </div>
+    </nav>
   </div>
 </template>
