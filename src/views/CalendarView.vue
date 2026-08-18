@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 import CalendarHeader from '@/components/calendar/CalendarHeader.vue'
@@ -7,8 +7,11 @@ import CalendarGrid from '@/components/calendar/CalendarGrid.vue'
 import SelectedDayPanel from '@/components/calendar/SelectedDayPanel.vue'
 import FloatingAddButton from '@/components/calendar/FloatingAddButton.vue'
 import EventModal from '@/components/calendar/EventModal.vue'
+import { useEventStore } from '@/stores/eventStore'
 
 const { locale } = useI18n()
+
+const eventStore = useEventStore()
 
 function toDateKey(date) {
   const year = date.getFullYear()
@@ -20,15 +23,13 @@ function toDateKey(date) {
 
 const today = new Date()
 
-const monthDate = ref(
-  new Date(today.getFullYear(), today.getMonth(), 1)
-)
+const monthDate = ref(new Date(today.getFullYear(), today.getMonth(), 1))
 
 const selectedDate = ref(toDateKey(today))
 
 const isEventModalOpen = ref(false)
 
-const events = ref([])
+const events = computed(() => eventStore.events)
 
 const activeLocale = computed(() => {
   return locale.value === 'ar' ? 'ar-SY' : 'en-US'
@@ -147,11 +148,7 @@ function handleNextMonth() {
 function handleToday() {
   const today = new Date()
 
-  monthDate.value = new Date(
-    today.getFullYear(),
-    today.getMonth(),
-    1
-  )
+  monthDate.value = new Date(today.getFullYear(), today.getMonth(), 1)
 
   selectedDate.value = toDateKey(today)
 }
@@ -164,30 +161,33 @@ function closeEventModal() {
   isEventModalOpen.value = false
 }
 
-function handleSaveEvent(eventData) {
-  const newEvent = {
-    id: Date.now(),
-    title: eventData.title,
-    date: eventData.date,
-    time: eventData.time || 'All day',
-    subtitle: eventData.subtitle,
-    color: eventData.color,
+async function handleSaveEvent(eventData) {
+  try {
+    await eventStore.addEvent(eventData)
+
+    selectedDate.value = eventData.date
+
+    const eventDate = new Date(`${eventData.date}T12:00:00`)
+
+    monthDate.value = new Date(
+      eventDate.getFullYear(),
+      eventDate.getMonth(),
+      1
+    )
+
+    closeEventModal()
+  } catch (error) {
+    console.error('Error saving event:', error)
   }
-
-  events.value.push(newEvent)
-
-  selectedDate.value = eventData.date
-
-  const eventDate = new Date(`${eventData.date}T12:00:00`)
-
-  monthDate.value = new Date(
-    eventDate.getFullYear(),
-    eventDate.getMonth(),
-    1
-  )
-
-  closeEventModal()
 }
+
+onMounted(async () => {
+  try {
+    await eventStore.fetchEvents()
+  } catch (error) {
+    console.error('Error loading events:', error)
+  }
+})
 </script>
 
 <template>

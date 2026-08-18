@@ -6,9 +6,15 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+
   selectedDate: {
     type: String,
     required: true,
+  },
+
+  editingEvent: {
+    type: Object,
+    default: null,
   },
 })
 
@@ -34,8 +40,17 @@ watch(
 watch(
   () => props.show,
   (isOpen) => {
-    if (isOpen) {
-      localError.value = ''
+    if (!isOpen) return
+
+    localError.value = ''
+
+    if (props.editingEvent) {
+      form.title = props.editingEvent.title
+      form.date = props.editingEvent.date
+      form.time = props.editingEvent.time || ''
+      form.subtitle = props.editingEvent.subtitle || ''
+      form.color = props.editingEvent.color || 'indigo'
+    } else {
       form.title = ''
       form.date = props.selectedDate
       form.time = ''
@@ -44,7 +59,6 @@ watch(
     }
   }
 )
-
 function handleSubmit() {
   localError.value = ''
 
@@ -79,11 +93,14 @@ function handleSubmit() {
         <div class="mb-6 flex items-center justify-between">
           <div>
             <h2 class="text-xl font-bold text-slate-900">
-              Add Event
+              {{ editingEvent ? 'Edit Event' : 'Add Event' }}
             </h2>
-
             <p class="text-sm text-slate-500 mt-1">
-              Create a new event for your calendar.
+              {{
+                editingEvent
+                  ? 'Update your event details.'
+                  : 'Create a new event for your calendar.'
+              }}
             </p>
           </div>
 
@@ -98,9 +115,7 @@ function handleSubmit() {
 
         <form @submit.prevent="handleSubmit" class="space-y-4">
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">
-              Event Title
-            </label>
+            <label class="mb-1 block text-sm font-semibold text-slate-700"> Event Title </label>
 
             <input
               v-model="form.title"
@@ -112,9 +127,7 @@ function handleSubmit() {
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label class="mb-1 block text-sm font-semibold text-slate-700">
-                Date
-              </label>
+              <label class="mb-1 block text-sm font-semibold text-slate-700"> Date </label>
 
               <input
                 v-model="form.date"
@@ -124,9 +137,7 @@ function handleSubmit() {
             </div>
 
             <div>
-              <label class="mb-1 block text-sm font-semibold text-slate-700">
-                Time
-              </label>
+              <label class="mb-1 block text-sm font-semibold text-slate-700"> Time </label>
 
               <input
                 v-model="form.time"
@@ -137,9 +148,7 @@ function handleSubmit() {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">
-              Description
-            </label>
+            <label class="mb-1 block text-sm font-semibold text-slate-700"> Description </label>
 
             <textarea
               v-model="form.subtitle"
@@ -150,9 +159,7 @@ function handleSubmit() {
           </div>
 
           <div>
-            <label class="mb-1 block text-sm font-semibold text-slate-700">
-              Color
-            </label>
+            <label class="mb-1 block text-sm font-semibold text-slate-700"> Color </label>
 
             <select
               v-model="form.color"
@@ -186,7 +193,7 @@ function handleSubmit() {
               type="submit"
               class="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
             >
-              Save Event
+              {{ editingEvent ? 'Update Event' : 'Save Event' }}
             </button>
           </div>
         </form>
