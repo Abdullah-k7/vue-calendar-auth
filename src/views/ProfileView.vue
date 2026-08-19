@@ -21,22 +21,14 @@ const notificationLoading = ref(false)
 const notificationError = ref('')
 const notificationsEnabled = ref(false)
 
-onMounted(async () => {
+onMounted(() => {
   try {
-    const user = authStore.user
-
-    if (!user?.uid) return
-
-    // ربط OneSignal بنفس Firebase UID
-    await OneSignal.login(user.uid)
-
     notificationsEnabled.value =
       OneSignal.Notifications.permission && OneSignal.User.PushSubscription.optedIn === true
   } catch (error) {
-    console.error('Error initializing OneSignal:', error)
+    console.error('Error checking notifications:', error)
   }
 })
-
 async function handleEnableNotifications() {
   notificationError.value = ''
   notificationLoading.value = true
@@ -48,57 +40,30 @@ async function handleEnableNotifications() {
       throw new Error('You must be logged in.')
     }
 
-    // هل المتصفح بيدعم Push؟
-    const supported = OneSignal.Notifications.isPushSupported()
-
-    if (!supported) {
+    if (!OneSignal.Notifications.isPushSupported()) {
       throw new Error('Push notifications are not supported in this browser.')
     }
 
-    console.log('Browser permission:', Notification.permission)
-
-    // إذا المستخدم عامل Block من Chrome
     if (Notification.permission === 'denied') {
-      throw new Error(
-        'Notifications are blocked. Please allow them from your browser site settings.'
-      )
+      throw new Error('Notifications are blocked. Please allow them from your browser settings.')
     }
 
-    // إذا لسا ما أعطى إذن
     await OneSignal.login(user.uid)
 
     await OneSignal.User.PushSubscription.optIn()
 
-    if (!OneSignal.Notifications.permission) {
-      throw new Error('Please allow notifications from your browser settings.')
-    }
-
-    notificationsEnabled.value = OneSignal.User.PushSubscription.optedIn === true
-
-    // نتأكد إنه صار Allow
     if (!OneSignal.Notifications.permission) {
       throw new Error('Notification permission was not granted.')
     }
 
-    // ربط المستخدم بـ Firebase UID
-    await OneSignal.login(user.uid)
+    notificationsEnabled.value = OneSignal.User.PushSubscription.optedIn === true
 
-    // تأكيد الاشتراك بالـ Push
-    await OneSignal.User.PushSubscription.optIn()
-
-    notificationsEnabled.value = true
-
-    console.log('✅ Notifications enabled')
-
-    console.log('External ID:', OneSignal.User.externalId)
-
-    console.log('Subscription ID:', OneSignal.User.PushSubscription.id)
-
-    console.log('Opted In:', OneSignal.User.PushSubscription.optedIn)
+    console.log('Notifications enabled')
+    console.log('Subscription:', OneSignal.User.PushSubscription.id)
   } catch (error) {
     notificationError.value = error.message || 'Could not enable notifications.'
 
-    console.error('❌ OneSignal notification error:', error)
+    console.error('OneSignal error:', error)
   } finally {
     notificationLoading.value = false
   }
@@ -155,15 +120,17 @@ const showLogoutModal = ref(false)
 
 async function handleLogout() {
   try {
-    // فك ربط هذا المستخدم من OneSignal
-    await OneSignal.logout()
-
     await authStore.logout()
 
     showLogoutModal.value = false
 
     router.replace({
       name: 'login',
+    })
+
+    // OneSignal لا يوقف عملية تسجيل الخروج
+    OneSignal.logout().catch((error) => {
+      console.warn('OneSignal logout failed:', error)
     })
   } catch (error) {
     console.error('Error logging out:', error)
@@ -188,13 +155,13 @@ async function handleDeleteAccount() {
   }
 
   try {
+    // 1. تأكيد كلمة المرور
     await authStore.reauthenticate(deletePassword.value)
 
+    // 2. حذف Events
     await eventStore.deleteAllEvents()
 
-    // فك ربط المستخدم من OneSignal
-    await OneSignal.logout()
-
+    // 3. حذف Firebase account
     await authStore.deleteAccount()
 
     showDeleteModal.value = false
@@ -202,6 +169,11 @@ async function handleDeleteAccount() {
 
     router.replace({
       name: 'login',
+    })
+
+    // ما نخلي OneSignal يوقف حذف الحساب
+    OneSignal.logout().catch((error) => {
+      console.warn('OneSignal logout failed:', error)
     })
   } catch (error) {
     if (error.code === 'auth/invalid-credential') {
