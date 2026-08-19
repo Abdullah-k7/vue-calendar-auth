@@ -48,37 +48,63 @@ async function handleEnableNotifications() {
       throw new Error('You must be logged in.')
     }
 
+    // هل المتصفح بيدعم Push؟
     const supported = OneSignal.Notifications.isPushSupported()
 
     if (!supported) {
       throw new Error('Push notifications are not supported in this browser.')
     }
 
-    // Firebase UID = OneSignal External ID
-    await OneSignal.login(user.uid)
+    console.log('Browser permission:', Notification.permission)
 
-    // طلب إذن الإشعارات
-    await OneSignal.Notifications.requestPermission()
+    // إذا المستخدم عامل Block من Chrome
+    if (Notification.permission === 'denied') {
+      throw new Error(
+        'Notifications are blocked. Please allow them from your browser site settings.'
+      )
+    }
 
+    // إذا لسا ما أعطى إذن
+    if (Notification.permission !== 'granted') {
+      await Promise.race([
+        OneSignal.Notifications.requestPermission(),
+
+        new Promise((_, reject) => {
+          setTimeout(() => {
+            reject(new Error('Notification permission request timed out.'))
+          }, 10000)
+        }),
+      ])
+    }
+
+    // نتأكد إنه صار Allow
     if (!OneSignal.Notifications.permission) {
       throw new Error('Notification permission was not granted.')
     }
 
+    // ربط المستخدم بـ Firebase UID
+    await OneSignal.login(user.uid)
+
+    // تأكيد الاشتراك بالـ Push
+    await OneSignal.User.PushSubscription.optIn()
+
     notificationsEnabled.value = true
 
-    console.log('Notifications enabled')
+    console.log('✅ Notifications enabled')
+
     console.log('External ID:', OneSignal.User.externalId)
 
     console.log('Subscription ID:', OneSignal.User.PushSubscription.id)
+
+    console.log('Opted In:', OneSignal.User.PushSubscription.optedIn)
   } catch (error) {
     notificationError.value = error.message || 'Could not enable notifications.'
 
-    console.error('OneSignal notification error:', error)
+    console.error('❌ OneSignal notification error:', error)
   } finally {
     notificationLoading.value = false
   }
 }
-
 // ================================
 // Change Password
 // ================================
