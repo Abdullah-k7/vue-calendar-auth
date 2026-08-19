@@ -100,9 +100,21 @@ async function handleUpdateEvent(eventData) {
       </p>
 
       <div class="flex items-center justify-between gap-4 mt-3 text-sm text-slate-600">
-        <p>
-          {{ event.time || 'All day' }}
-        </p>
+        <div>
+          <p>
+            {{ event.time || 'All day' }}
+          </p>
+          <p v-if="event.reminderMinutes" class="mt-1 text-xs text-indigo-500">
+            🔔
+            {{
+              event.reminderMinutes === 1440
+                ? '1 day before'
+                : event.reminderMinutes === 60
+                ? '1 hour before'
+                : `${event.reminderMinutes} minutes before`
+            }}
+          </p>
+        </div>
 
         <div class="flex items-center gap-2">
           <!-- Edit -->

@@ -169,11 +169,7 @@ async function handleSaveEvent(eventData) {
 
     const eventDate = new Date(`${eventData.date}T12:00:00`)
 
-    monthDate.value = new Date(
-      eventDate.getFullYear(),
-      eventDate.getMonth(),
-      1
-    )
+    monthDate.value = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1)
 
     closeEventModal()
   } catch (error) {
@@ -217,9 +213,7 @@ onMounted(async () => {
         @add-event="openEventModal"
       />
     </div>
-
     <FloatingAddButton @click="openEventModal" />
-
     <EventModal
       :show="isEventModalOpen"
       :selected-date="selectedDate"

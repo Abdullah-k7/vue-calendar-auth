@@ -10,6 +10,11 @@ import {
   onAuthStateChanged,
   updateProfile,
   reload,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
+  updatePassword,
+  deleteUser,
+
 } from 'firebase/auth'
 
 function mapUser(user) {
@@ -162,6 +167,77 @@ export const useAuthStore = defineStore('auth', {
     async logout() {
       await signOut(auth)
       this.user = null
+    },
+
+    async changePassword(currentPassword, newPassword) {
+      this.clearMessages()
+      this.loading = true
+
+      try {
+        const user = auth.currentUser
+
+        if (!user || !user.email) {
+          throw new Error('You must be logged in.')
+        }
+
+        const credential = EmailAuthProvider.credential(
+          user.email,
+          currentPassword
+        )
+
+        await reauthenticateWithCredential(user, credential)
+
+        await updatePassword(user, newPassword)
+
+        this.success = 'Password changed successfully.'
+      } catch (error) {
+        if (error.code === 'auth/invalid-credential') {
+          this.error = 'Current password is incorrect.'
+        } else {
+          this.error = getAuthErrorMessage(error)
+        }
+
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async reauthenticate(password) {
+      const user = auth.currentUser
+
+      if (!user || !user.email) {
+        throw new Error('You must be logged in.')
+      }
+
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        password
+      )
+
+      await reauthenticateWithCredential(
+        user,
+        credential
+      )
+    },
+
+    async deleteAccount() {
+      this.clearMessages()
+
+      try {
+        const user = auth.currentUser
+
+        if (!user) {
+          throw new Error('You must be logged in.')
+        }
+
+        await deleteUser(user)
+
+        this.user = null
+      } catch (error) {
+        this.error = getAuthErrorMessage(error)
+        throw error
+      }
     },
   },
 })

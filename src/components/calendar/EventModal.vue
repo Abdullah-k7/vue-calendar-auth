@@ -28,6 +28,7 @@ const form = reactive({
   time: '',
   subtitle: '',
   color: 'indigo',
+  reminderMinutes: '',
 })
 
 watch(
@@ -50,12 +51,14 @@ watch(
       form.time = props.editingEvent.time || ''
       form.subtitle = props.editingEvent.subtitle || ''
       form.color = props.editingEvent.color || 'indigo'
+      form.reminderMinutes = props.editingEvent.reminderMinutes ?? ''
     } else {
       form.title = ''
       form.date = props.selectedDate
       form.time = ''
       form.subtitle = ''
       form.color = 'indigo'
+      form.reminderMinutes = ''
     }
   }
 )
@@ -71,6 +74,10 @@ function handleSubmit() {
     localError.value = 'Please select a date.'
     return
   }
+  if (form.reminderMinutes !== '' && !form.time) {
+    localError.value = 'Please select a time to use a reminder.'
+    return
+  }
 
   emit('save', {
     title: form.title.trim(),
@@ -78,6 +85,8 @@ function handleSubmit() {
     time: form.time,
     subtitle: form.subtitle.trim(),
     color: form.color,
+
+    reminderMinutes: form.reminderMinutes === '' ? null : Number(form.reminderMinutes),
   })
 }
 </script>
@@ -145,6 +154,25 @@ function handleSubmit() {
                 class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
               />
             </div>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-semibold text-slate-700"> Reminder </label>
+
+            <select
+              v-model="form.reminderMinutes"
+              class="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">No reminder</option>
+              <option :value="5">5 minutes before</option>
+              <option :value="10">10 minutes before</option>
+              <option :value="15">15 minutes before</option>
+              <option :value="30">30 minutes before</option>
+              <option :value="60">1 hour before</option>
+              <option :value="1440">1 day before</option>
+            </select>
+
+            <p class="mt-1 text-xs text-slate-400">Choose when you want to be notified.</p>
           </div>
 
           <div>
