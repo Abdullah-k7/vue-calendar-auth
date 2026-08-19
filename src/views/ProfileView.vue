@@ -1,23 +1,87 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useOneSignal } from '@onesignal/onesignal-vue3'
+
 import { useAuthStore } from '@/stores/authStore'
 import { useEventStore } from '@/stores/eventStore'
-import { useNotificationStore } from '@/stores/notificationStore'
 
-const notificationStore = useNotificationStore()
+const router = useRouter()
+
+const authStore = useAuthStore()
+const eventStore = useEventStore()
+
+const OneSignal = useOneSignal()
+
+// ================================
+// Notifications
+// ================================
+
+const notificationLoading = ref(false)
+const notificationError = ref('')
+const notificationsEnabled = ref(false)
+
+onMounted(async () => {
+  try {
+    const user = authStore.user
+
+    if (!user?.uid) return
+
+    // ربط OneSignal بنفس Firebase UID
+    await OneSignal.login(user.uid)
+
+    notificationsEnabled.value =
+      OneSignal.Notifications.permission && OneSignal.User.PushSubscription.optedIn === true
+  } catch (error) {
+    console.error('Error initializing OneSignal:', error)
+  }
+})
 
 async function handleEnableNotifications() {
+  notificationError.value = ''
+  notificationLoading.value = true
+
   try {
-    await notificationStore.enableNotifications()
+    const user = authStore.user
+
+    if (!user?.uid) {
+      throw new Error('You must be logged in.')
+    }
+
+    const supported = OneSignal.Notifications.isPushSupported()
+
+    if (!supported) {
+      throw new Error('Push notifications are not supported in this browser.')
+    }
+
+    // Firebase UID = OneSignal External ID
+    await OneSignal.login(user.uid)
+
+    // طلب إذن الإشعارات
+    await OneSignal.Notifications.requestPermission()
+
+    if (!OneSignal.Notifications.permission) {
+      throw new Error('Notification permission was not granted.')
+    }
+
+    notificationsEnabled.value = true
+
+    console.log('Notifications enabled')
+    console.log('External ID:', OneSignal.User.externalId)
+
+    console.log('Subscription ID:', OneSignal.User.PushSubscription.id)
   } catch (error) {
-    console.error('Error enabling notifications:', error)
+    notificationError.value = error.message || 'Could not enable notifications.'
+
+    console.error('OneSignal notification error:', error)
+  } finally {
+    notificationLoading.value = false
   }
 }
 
-const router = useRouter()
-const authStore = useAuthStore()
-const eventStore = useEventStore()
+// ================================
+// Change Password
+// ================================
 
 const currentPassword = ref('')
 const newPassword = ref('')
@@ -28,11 +92,6 @@ const localError = ref('')
 const showCurrentPassword = ref(false)
 const showNewPassword = ref(false)
 const showConfirmPassword = ref(false)
-
-const showLogoutModal = ref(false)
-const showDeleteModal = ref(false)
-const deletePassword = ref('')
-const deleteError = ref('')
 
 async function handleChangePassword() {
   localError.value = ''
@@ -64,15 +123,36 @@ async function handleChangePassword() {
   }
 }
 
+// ================================
+// Logout
+// ================================
+
+const showLogoutModal = ref(false)
+
 async function handleLogout() {
   try {
+    // فك ربط هذا المستخدم من OneSignal
+    await OneSignal.logout()
+
     await authStore.logout()
+
     showLogoutModal.value = false
-    router.replace({ name: 'login' })
+
+    router.replace({
+      name: 'login',
+    })
   } catch (error) {
     console.error('Error logging out:', error)
   }
 }
+
+// ================================
+// Delete Account
+// ================================
+
+const showDeleteModal = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
 
 async function handleDeleteAccount() {
   deleteError.value = ''
@@ -88,12 +168,17 @@ async function handleDeleteAccount() {
 
     await eventStore.deleteAllEvents()
 
+    // فك ربط المستخدم من OneSignal
+    await OneSignal.logout()
+
     await authStore.deleteAccount()
 
     showDeleteModal.value = false
     deletePassword.value = ''
 
-    router.replace({ name: 'login' })
+    router.replace({
+      name: 'login',
+    })
   } catch (error) {
     if (error.code === 'auth/invalid-credential') {
       deleteError.value = 'Current password is incorrect.'
@@ -105,7 +190,6 @@ async function handleDeleteAccount() {
   }
 }
 </script>
-
 <template>
   <div class="space-y-6">
     <!-- Account Information -->
@@ -145,15 +229,15 @@ async function handleDeleteAccount() {
 
     <!-- Notifications -->
     <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-      <div class="flex items-center justify-between gap-4">
+      <div class="flex items-start justify-between gap-4">
         <div>
           <h2 class="text-lg font-bold text-slate-900">Notifications</h2>
 
-          <p class="mt-1 text-sm text-slate-500">Receive reminders for your calendar events.</p>
+          <p class="mt-1 text-sm text-slate-500">Receive reminders before your calendar events.</p>
         </div>
 
         <span
-          v-if="notificationStore.enabled"
+          v-if="notificationsEnabled"
           class="rounded-lg bg-green-50 px-3 py-1 text-xs font-semibold text-green-600"
         >
           Enabled
@@ -161,20 +245,20 @@ async function handleDeleteAccount() {
       </div>
 
       <div
-        v-if="notificationStore.error"
-        class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        v-if="notificationError"
+        class="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"
       >
-        {{ notificationStore.error }}
+        {{ notificationError }}
       </div>
 
       <button
-        v-if="!notificationStore.enabled"
+        v-if="!notificationsEnabled"
         type="button"
         @click="handleEnableNotifications"
-        :disabled="notificationStore.loading"
+        :disabled="notificationLoading"
         class="mt-5 rounded-xl bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 disabled:opacity-60"
       >
-        {{ notificationStore.loading ? 'Enabling...' : '🔔 Enable Notifications' }}
+        {{ notificationLoading ? 'Enabling...' : '🔔 Enable Notifications' }}
       </button>
 
       <div v-else class="mt-5 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-700">
