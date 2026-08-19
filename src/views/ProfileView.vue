@@ -65,17 +65,15 @@ async function handleEnableNotifications() {
     }
 
     // إذا لسا ما أعطى إذن
-    if (Notification.permission !== 'granted') {
-      await Promise.race([
-        OneSignal.Notifications.requestPermission(),
+    await OneSignal.login(user.uid)
 
-        new Promise((_, reject) => {
-          setTimeout(() => {
-            reject(new Error('Notification permission request timed out.'))
-          }, 10000)
-        }),
-      ])
+    await OneSignal.User.PushSubscription.optIn()
+
+    if (!OneSignal.Notifications.permission) {
+      throw new Error('Please allow notifications from your browser settings.')
     }
+
+    notificationsEnabled.value = OneSignal.User.PushSubscription.optedIn === true
 
     // نتأكد إنه صار Allow
     if (!OneSignal.Notifications.permission) {
